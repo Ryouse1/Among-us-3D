@@ -5,18 +5,15 @@ import LobbyMap from './LobbyMap.jsx';
 import Player from './Player.jsx';
 import { players, socket } from './network.js';
 
-export default function Lobby({ user, onJoin, onStart, room }) {
-  const isHost = !room || room.hostId===user.username;
+export default function Lobby({ user, onStart, room }) {
+  const isHost = room.hostId === user.username;
 
   const startGame = ()=>{
     if(isHost){
-      socket.send(JSON.stringify({type:"start_game", roomName:room?.name || "ロビー"}));
+      room.started = true;
+      socket.send(JSON.stringify({type:"start_game", roomName:room.name}));
       onStart();
     }
-  };
-
-  const joinRoom = ()=>{
-    if(onJoin) onJoin({name:"ロビー", hostId:user.username});
   };
 
   return (
@@ -30,8 +27,7 @@ export default function Lobby({ user, onJoin, onStart, room }) {
         )}
         <OrbitControls/>
       </Canvas>
-      {!room && <button style={{position:"absolute",top:10,left:10}} onClick={joinRoom}>ロビー参加</button>}
-      {isHost && <button style={{position:"absolute",top:50,left:10}} onClick={startGame}>ゲーム開始</button>}
+      {isHost && <button style={{position:"absolute",top:10,left:10}} onClick={startGame}>ゲーム開始</button>}
     </>
   );
 }
