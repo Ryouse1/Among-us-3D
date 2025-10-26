@@ -1,8 +1,9 @@
 export const players = {};
 export let socket = null;
+export const activeServers = {}; // serverId: { started: true/false }
 
 export function connectServer(userId){
-  socket = new WebSocket("ws://localhost:8080");
+  socket = new WebSocket("wss://amongus.com");
 
   socket.onopen = ()=>{
     socket.send(JSON.stringify({type:"login", id:userId}));
@@ -10,18 +11,24 @@ export function connectServer(userId){
 
   socket.onmessage = (msg)=>{
     const data = JSON.parse(msg.data);
-    if(data.type==="state_broadcast"){
-      Object.assign(players, data.players);
-    }
-    if(data.type==="ban"){
-      alert(data.message);
-      window.location.reload();
-    }
-    if(data.type==="force_join"){
-      joinRoom(data.room);
-    }
-    if(data.type==="start_game"){
-      joinGameServer(data.room);
+
+    switch(data.type){
+      case "state_broadcast":
+        Object.assign(players, data.players);
+        break;
+      case "ban":
+        alert(data.message);
+        window.location.reload();
+        break;
+      case "force_join":
+        joinRoom(data.room);
+        break;
+      case "start_game":
+        // サーバー開始
+        const serverId = data.room.serverId;
+        activeServers[serverId] = { started:true };
+        joinGameServer(data.room);
+        break;
     }
   };
 }
@@ -39,9 +46,13 @@ export function sendState(player){
 }
 
 export function joinRoom(room){
-  socket.send(JSON.stringify({type:"join_room", roomName:room.name, password:room.password}));
+  if(activeServers[room.serverId]?.started){
+    alert("ゲームが始まったため入れません");
+    return;
+  }
+  socket.send(JSON.stringify({type:"join_room", roomName:room.name, serverId:room.serverId}));
 }
 
 export function joinGameServer(room){
-  socket.send(JSON.stringify({type:"join_game_server", roomName:room.name}));
+  socket.send(JSON.stringify({type:"join_game_server", roomName:room.name, serverId:room.serverId}));
 }
